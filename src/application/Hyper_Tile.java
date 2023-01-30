@@ -20,8 +20,6 @@ public class Hyper_Tile extends Tile{
 	private static final int TILE_SIZE = 40;
     private int X_TILES = 16;
     private int Y_TILES = 16;
-    
-//    protected List<Tile> hyper_neighbors = new ArrayList<>();
 
     private Rectangle border = new Rectangle(TILE_SIZE - 2, TILE_SIZE - 2, Color.LIGHTGRAY);
     private static final Image image = new Image("file:images/flag.png");
@@ -110,6 +108,7 @@ public class Hyper_Tile extends Tile{
         getChildren().add(imageView);
         Timer tm = MinesweeperApp.getTimer();
         tm.cancel();
+        bomb_pressed();
         return;
     }
 }
