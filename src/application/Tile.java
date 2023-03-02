@@ -2,12 +2,9 @@ package application;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Timer;
 
-import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseButton;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -16,18 +13,14 @@ import javafx.scene.text.Text;
 
 public class Tile extends StackPane{
 	private static final int TILE_SIZE = 40;
-    private int X_TILES = 16;
-    private int Y_TILES = 16;
-    private int W = X_TILES*40;
-    private int H = Y_TILES*40+200;
 	
     protected int x, y;
-    protected int number_of_bombs;
+    protected int number_of_bombs, difficulty_level;
     protected boolean hasBomb;
     private boolean isOpen = false;
     private boolean marked = false;
+    private static int tiles_revealed=0;
     protected List<Tile> neighbors = new ArrayList<>();
-    public static int total_moves = 0;
     
     
     private Rectangle border = new Rectangle(TILE_SIZE - 2, TILE_SIZE - 2, Color.LIGHTGRAY);
@@ -35,58 +28,49 @@ public class Tile extends StackPane{
     private static final Image image = new Image("file:images/flag.png");
     ImageView imageView = new ImageView();
 
-    public Tile(int x, int y, boolean hasBomb, int X_TILES, int Y_TILES) {
+    public Tile(int x, int y, boolean hasBomb, int difficulty_level) {
         this.x = x;
         this.y = y;
-        this.X_TILES = X_TILES;
-        this.Y_TILES = Y_TILES;
         this.hasBomb = hasBomb;
-
+        this.difficulty_level = difficulty_level;
+        
         border.setStroke(Color.BLACK);
         text.setFont(Font.font(18));
         text.setText(hasBomb ? "X" : "");
         text.setVisible(false);
-
+        
+        this.setDisable(false);
+        
         getChildren().addAll(border, text);
         
-        int diff = MinesweeperApp.getDifficulty_level();
-        setTranslateX((y+3.5*(2 -diff)) * TILE_SIZE); // x represents rows, but x axis corresponds to columns
+        setTranslateX((y+3.5*(2 -difficulty_level)) * TILE_SIZE); // x represents rows, but x axis corresponds to columns
         setTranslateY(x * TILE_SIZE + 100);
-        setOnMouseClicked(event -> 
-        {
-        	MouseButton button = event.getButton();
-        	if (button == MouseButton.PRIMARY) {
-        		if(!marked) {
-	        		open();
-	        		total_moves++;
-        		}
-        	}
-        	else if (button == MouseButton.SECONDARY){
-        		
-        		TextField markedbombs = MinesweeperApp.getMarkedBombes();
-        		imageView.setFitHeight(TILE_SIZE-2);
-        		imageView.setFitWidth(TILE_SIZE-2);
-        		imageView.setImage(image);
-        		if(!marked && !isOpen) {
-            		getChildren().add(imageView);
-	
-            		int marked__bombs = Integer.parseInt(markedbombs.getText());
-            		markedbombs.setText(String.valueOf((++marked__bombs)));
-            		marked = true;
-        		}
-        		else {
-        			marked = false;
-        			if(!isOpen) {
-	        			getChildren().remove(imageView);
-	        			
-	        			int marked__bombs = Integer.parseInt(markedbombs.getText());
-	            		markedbombs.setText(String.valueOf((--marked__bombs)));
-        			}
-        		}
-        	}
-        });
     }
     
+    public void left_click(int total_moves) { //returns if bomb pressed
+    	if(!marked) {
+    		tiles_revealed = 0; //in every left_click
+    		open();
+    		//total_moves++;
+		}
+    }
+    
+    public void right_click(int total_moves) {
+		imageView.setFitHeight(TILE_SIZE-2);
+		imageView.setFitWidth(TILE_SIZE-2);
+		imageView.setImage(image);
+		if(!marked && !isOpen) {
+    		getChildren().add(imageView);
+
+    		marked = true;
+		}
+		else {
+			marked = false;
+			if(!isOpen) {
+    			getChildren().remove(imageView);
+			}
+		}
+    }
     
     public void open() {
         if (isOpen)
@@ -94,8 +78,6 @@ public class Tile extends StackPane{
 
         if (hasBomb) {
            System.out.println("Game Over");
-           //InputStream stream = new FileInputStream("C:\\LAB-2021\\ECLIPSE\\Eclipse-Workspace\\Minesweeper\\src\\application\\bomb.png");
-           //Image image = new Image("File:C:\\LAB-2021\\ECLIPSE\\Eclipse-Workspace\\Minesweeper\\src\\application\\bomb.png");
            Image image = new Image("file:images/bomb.png");
            //Creating the image view
            ImageView imageView = new ImageView();
@@ -108,19 +90,13 @@ public class Tile extends StackPane{
            getChildren().add(imageView);
            
            isOpen = true;
-
-           Timer tm = MinesweeperApp.getTimer();
-           tm.cancel();
-           //scene.setRoot(createContent());
-           //scene = new Scene(createContent());
+           
            return;
         }
-        
-        //int total_moves = MinesweeperApp.getTotalMoves();
+        tiles_revealed ++; //count tiles_revealed with every left click
         isOpen = true;
         text.setVisible(true);
         border.setFill(null);
-        //total_moves++;
         if (text.getText().isEmpty()) {
             neighbors.forEach(Tile::open);
         }
@@ -138,13 +114,27 @@ public class Tile extends StackPane{
            imageView.setFitWidth(TILE_SIZE-2);
            imageView.setImage(image);
            getChildren().add(imageView);
-           //tm.cancel();
            return;
         }
-
+        tiles_revealed++;
         isOpen = true;
         text.setVisible(true);
         border.setFill(null);
-        //total_moves++;
     }
+    
+    public boolean getMarkedBombs() {
+    	return marked;
+    }
+    
+    public boolean getOpen() {
+    	return isOpen;
+    }  
+    
+    public int getTilesRevealed() {
+    	return tiles_revealed;
+    }  
+    
+    public void setTilesRevealed() {
+    	tiles_revealed=0;
+    }  
 }

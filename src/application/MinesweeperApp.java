@@ -1,20 +1,15 @@
 package application;
 
-
 import java.util.ArrayList;
-
 import java.util.List;
 import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ThreadLocalRandom;
 
 import classes.Coordinate;
-import application.Tile;
-import application.Hyper_Tile;
+import classes.Round_result;
 import classes.InvalidDescriptionException;
 import classes.InvalidValueException;
-//import javax.swing.event.ChangeListener;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -23,46 +18,32 @@ import javafx.collections.FXCollections;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.input.MouseButton;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.Spinner;
+import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import javafx.util.Pair;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseButton;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter; 
 
 public class MinesweeperApp extends Application {
-
-    private static final int TILE_SIZE = 40;
     private int X_TILES = 16;
     private int Y_TILES = 16;
-    private int W = X_TILES*40;
-    private int H = Y_TILES*40+200;
+    private int W = 16*40;
+    private int H = 16*40+200;
 
     protected static Tile[][] grid;
     private Scene scene;
@@ -72,16 +53,20 @@ public class MinesweeperApp extends Application {
     public static TextField markedbombs = new TextField();
     private static int difficulty_level = 0;
     private int number_of_bombs;
-    private boolean hyper_bomb = false;
+    private boolean hyper_bomb = false, valid_data = false;
     private int time_left_in_seconds = 0;
-    private int del = 0;
     private boolean timer_running = false;
     public static Timer tm;
-    private int hyper_bomb_x = 0, hyper_bomb_y = 0;
     private List<Coordinate> bombs_location;
-    GridPane root;
+    private MinesweeperBoard board;
+    private boolean something_already_drawn = false;
+    private Stage primaryStage = new Stage();
+    protected GridPane root;
     
+    private ArrayList<Round_result> results = new ArrayList<Round_result>(); 
+    private int total_results = 0;
     public static int total_moves = 0;
+    private int tiles_to_win = X_TILES*Y_TILES;
     
     private Parent createContent() {
 
@@ -109,13 +94,11 @@ public class MinesweeperApp extends Application {
         	}
         	Platform.exit();});
         
-        create.setOnAction(e -> { create_mode(); });
-        
+        create.setOnAction(e -> { create_mode(); });      
         load.setOnAction(e -> { load_mode(); });
-        
         start.setOnAction(f -> { start(); });    	
-    	
         solution.setOnAction(e -> { show_solution(); });
+        round.setOnAction(e -> { show_results(); });
         root = new GridPane();
         
         BorderPane border_root = new BorderPane();
@@ -145,35 +128,38 @@ public class MinesweeperApp extends Application {
         
         return border_root;
     }
-     
-    private void start() {
-    	if(timer_running) { //if starts is being pressed while playing
+
+	private void start() {
+		if(difficulty_level == 2) {
+    		X_TILES = 16;
+    		Y_TILES = 16;
+    	}
+    	else if(difficulty_level == 1) {
+    		X_TILES = 9;
+    		Y_TILES = 9;    		
+    	}
+		tiles_to_win = X_TILES*Y_TILES - number_of_bombs; //i have to reveal these many tiles to win
+		
+    	if(something_already_drawn && valid_data) { //if starts is being pressed while playing
 //    		Platform.exit();
     		tm.cancel();
     		timer_running = false;
+    		something_already_drawn = false;
     		root.getChildren().clear();
-    		Stage test_stage = new Stage();
+    		//Stage test_stage = new Stage();
     		try {
-				start(test_stage);
+				start(primaryStage);
 				start();
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}   	
 		}
-    	else {
+    	else if (valid_data) {
     		timer_running = true;
+    		something_already_drawn = true;
 	    	total_moves = 0;
-	    	if(difficulty_level == 2) {
-	    		X_TILES = 16;
-	    		Y_TILES = 16;
-	    	}
-	    	else if(difficulty_level == 1) {
-	    		X_TILES = 9;
-	    		Y_TILES = 9;    		
-	    	}
-	    	W = X_TILES*40;
-	        H = Y_TILES*40+200;
+	        
+	        board = new MinesweeperBoard(difficulty_level, hyper_bomb, number_of_bombs);
 	        
 	        numberofbombs.setText(String.valueOf(number_of_bombs));
 	        markedbombs.setText("0");
@@ -195,160 +181,65 @@ public class MinesweeperApp extends Application {
 		    		if(time_int <= 0) {
 		    			tm.cancel();
 		    			timer_running=false;
+		    			bomb_pressed();
 		    		}
 	        	}
 	    	}, 1000, 1000);
 	        
-	        grid = new Tile[X_TILES][Y_TILES];
-	        int remaining_bombs, remaining_tiles;
+	        grid = board.getGrid();
+	        bombs_location = board.getBombLocation();      
+	        GridPane help_root = board.getBoard();
+	        root.getChildren().add(help_root);
 	        
-	        if(difficulty_level == 2 && hyper_bomb) {
-	        	hyper_bomb_x = ThreadLocalRandom.current().nextInt(0, X_TILES - 1);
-	        	hyper_bomb_y = ThreadLocalRandom.current().nextInt(0, Y_TILES - 1);
+	        int i=0, j=0;
+	        for(i=0; i<X_TILES; i++) {
+		        for(j=0; j<Y_TILES; j++) {
+		            final int innerI = i;
+		            final int innerJ = j;
+		        	grid[i][j].setOnMouseClicked(event -> 
+			        {
+			        	MouseButton button = event.getButton();
+			        	if (button == MouseButton.PRIMARY) {
+			        		boolean previous_open = grid[innerI][innerJ].getOpen();
+			        		grid[innerI][innerJ].left_click(total_moves);
+			        		total_moves++;
+			        		boolean opened = grid[innerI][innerJ].getOpen();
+			        		boolean bomb_press = (!previous_open && opened && grid[innerI][innerJ].hasBomb);  //opened now and has bomb
+			        		if(bomb_press) { bomb_pressed(); }
+			        		tiles_to_win -= grid[innerI][innerJ].getTilesRevealed();
+			        		if(tiles_to_win == 0) {
+			        			winning();
+			        		}
+			        	}
+			        	else if (button == MouseButton.SECONDARY){
+			        		if(Integer.parseInt(markedbombs.getText()) < number_of_bombs || grid[innerI][innerJ].getMarkedBombs()){
+				        		boolean opened = grid[innerI][innerJ].getOpen(), marked = grid[innerI][innerJ].getMarkedBombs();
+				        		int added_marked_bombs=0;
+				        		if(!opened && !marked && (total_moves<5) && hyper_bomb && innerI == board.hyper_bomb_x-1 && innerJ == board.hyper_bomb_y-1) { //hyper_bomb not opened, not marked with a flag, less than 5 moves => open row and column of hyper_bomb
+				        			added_marked_bombs = 0;
+				        			hyper_bomb_found_in_5_moves(innerI, innerJ);
+				        		}
+				        		grid[innerI][innerJ].right_click(total_moves);
+				        		if(!opened && marked) //it was marked with a flag before, so now it's not
+				        			added_marked_bombs = -1;
+				        		else if(!opened && !marked) //it wasn't marked with a flag before, now it is
+				        			added_marked_bombs = +1;
+				        		int marked__bombs = Integer.parseInt(markedbombs.getText());
+				        		markedbombs.setText(String.valueOf((marked__bombs + added_marked_bombs)));
+			        		}
+			        	}
+			        });
+		        }
 	        }
-	        
-	    	remaining_bombs = number_of_bombs;
-	        remaining_tiles = X_TILES*Y_TILES;
-	
-	        bombs_location = new ArrayList<Coordinate>();
-	               
-	        boolean will_have_bomb = false;
-	        for (int x = 0; x < X_TILES; x++) {
-	            for (int y = 0; y < Y_TILES; y++) {
-	            	if(remaining_tiles - remaining_bombs <= 0) { //if the number of remaining bombs equals the number of remaining tiles put bombs to all the rest tiles
-	            		will_have_bomb = true;
-	            	}
-	            	else if(remaining_bombs > 0){ //if the are still bombs to place
-	                	will_have_bomb = (Math.random() < (float)number_of_bombs/(X_TILES*Y_TILES));
-	            	}
-	            	else {
-	            		will_have_bomb = false;
-	            	}
-	            	
-	            	boolean hyper = (((x+1)==hyper_bomb_x) && ((y+1)==hyper_bomb_y));
-	            	
-	            	if(difficulty_level == 2 && hyper_bomb && hyper) {
-	            		Hyper_Tile tile = new Hyper_Tile(x, y, hyper, X_TILES, Y_TILES);
-	            		grid[x][y] = tile;
-	                    root.getChildren().add(tile);
-	            	}
-	            	else {
-	            		Tile tile = new Tile(x, y, will_have_bomb, X_TILES, Y_TILES);
-	            		grid[x][y] = tile;
-	                    root.getChildren().add(tile);
-	            	}
-	            	
-	            	remaining_tiles--;
-	                if(difficulty_level == 2 && hyper_bomb && (will_have_bomb || hyper)) {
-	                	remaining_bombs--;
-	                	bombs_location.add(new Coordinate(x, y, hyper));
-	                }
-	                else if(will_have_bomb) {
-	                	remaining_bombs--;
-	                	bombs_location.add(new Coordinate(x, y));
-	                }   
-	            }
-	        }
-	        
-	    	try {
-	    		new FileWriter("output\\mines.txt", false).close();
-	    		FileWriter fstream = new FileWriter("output\\mines.txt");
-				BufferedWriter out = new BufferedWriter(fstream);
-	    		for(Coordinate i: bombs_location) {
-					if(difficulty_level == 2 && hyper_bomb) {
-						out.write(i.getX() + "," + i.getY() + "," + i.getHyperBomb() + "\n");
-						
-			    		System.out.println(i.toString_hyper());
-					}
-					else {
-						out.write(i.getX() + "," + i.getY() + "\n");
-						System.out.println(i.toString());
-					}
-	    		}
-	    		out.close();
-	    	}catch (Exception e){
-	    		System.err.println("Error: " + e.getMessage());
-	    	}
-	
-	        for (int y = 0; y < Y_TILES; y++) {
-	            for (int x = 0; x < X_TILES; x++) {
-	                Tile tile = grid[x][y];
-	
-	                if (tile.hasBomb)
-	                    continue;
-	                
-	        		List<Tile> neighbors_help = getNeighbors(tile);
-	        		int bombs = 0;		
-	        		for (Tile neighbor : neighbors_help) {
-	        		    if(neighbor.hasBomb) {
-	        		    	bombs += 1;
-	        		    	
-	        		    }
-	        		}		
-	
-	                if (bombs > 0) {
-	                	//System.out.println(String.valueOf(bombs));
-	                    tile.number_of_bombs = bombs;
-	                  	tile.text.setText(String.valueOf(tile.number_of_bombs));
-	                }
-	            }
-	        }
+	    
+    	}
+    	else {
+    		Alert a = new Alert(AlertType.INFORMATION);
+    		a.setHeaderText("Invalid or No Data");
+            a.show();
     	}
     }
-      
-    private List<Tile> getNeighbors(Tile tile) {
-        List<Tile> neighbors = new ArrayList<>();
-
-        int[] points = new int[] {
-              -1, -1,
-              -1, 0,
-              -1, 1,
-              0, -1,
-              0, 1,
-              1, -1,
-              1, 0,
-              1, 1
-        };
-
-        for (int i = 0; i < points.length; i++) {
-            int dx = points[i];
-            int dy = points[++i];
-
-            int newX = tile.x + dx;
-            int newY = tile.y + dy;
-
-            if (newX >= 0 && newX < X_TILES
-                    && newY >= 0 && newY < Y_TILES) {
-                neighbors.add(grid[newX][newY]);
-            }
-        }
-        
-        tile.neighbors = neighbors;
-        
-        return neighbors;
-    }
-      
-
-    @Override
-    public void start(Stage primaryStage) throws Exception {
-   
-        scene = new Scene(createContent());
-
-        primaryStage.setScene(scene);
-        primaryStage.setTitle("MediaLab Minesweeper");
-        scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
-        primaryStage.setResizable(false);
-        
-        primaryStage.setOnCloseRequest(event -> {
-        	if(timer_running) {
-        		tm.cancel();
-        	}
-        	Platform.exit();
-    	});
-        
-        primaryStage.show();
-    }
-    
+         
     private void create_mode()
     {
         Stage stage = new Stage();
@@ -377,8 +268,17 @@ public class MinesweeperApp extends Application {
         hyper_bomb_hb.getChildren().addAll(label4, hyper_bomb);
         
         Label label5 = new Label("Time Left(sec):"); 
-        ChoiceBox time_left = new ChoiceBox();
+//        ChoiceBox time_left = new ChoiceBox();
         HBox time_left_hb = new HBox();
+        Slider time_left = new Slider();
+		time_left.setBlockIncrement(1);
+//		time_left.setShowTickMarks(true);
+		time_left.setShowTickLabels(true);
+		time_left.setMajorTickUnit(1);
+		time_left.setMinorTickCount(0);
+		time_left.setShowTickLabels(true);
+		time_left.setSnapToTicks(true);
+		time_left.setPrefWidth(500);
         time_left_hb.getChildren().addAll(label5, time_left);
         
         difficulty_level.getSelectionModel().selectedIndexProperty().addListener(new ChangeListener<Number>() {
@@ -394,10 +294,8 @@ public class MinesweeperApp extends Application {
             		hyper_bomb.getItems().removeAll(hyper_bomb.getItems());
             		hyper_bomb.getItems().add(0);
             		
-            		time_left.getItems().removeAll(time_left.getItems());
-            		for(int i=12; i<19; i++) {
-            			time_left.getItems().add(i*10);
-            		}
+            		time_left.setMin(120);
+            		time_left.setMax(180);
             	}
             	else if(new_value.intValue() == 1) {
             		number_of_bombs.getItems().removeAll(number_of_bombs.getItems());
@@ -407,26 +305,23 @@ public class MinesweeperApp extends Application {
             		
             		hyper_bomb.getItems().removeAll(hyper_bomb.getItems());
             		hyper_bomb.getItems().addAll(0, 1);
-            		
-            		time_left.getItems().removeAll(time_left.getItems());
-            		for(int i=24; i<37; i++) {
-            			time_left.getItems().add(i*10);
-            		}
+
+            		time_left.setMin(240);
+            		time_left.setMax(360);
             	}
-            	//System.out.println(new_value.intValue());
             }
         });
         
         Button create = new Button("Create");
         create.setOnAction(action -> {
         	try{
-        		if(!scenario_id.getText().isEmpty() && difficulty_level.getValue() != null && number_of_bombs.getValue() != null && hyper_bomb.getValue() != null && time_left.getValue() != null) {
+        		if(!scenario_id.getText().isEmpty() && difficulty_level.getValue() != null && number_of_bombs.getValue() != null && hyper_bomb.getValue() != null) {
         			new FileWriter("medialab\\SCENARIO-" + scenario_id.getText() + ".txt", false).close();
 	        		FileWriter fstream = new FileWriter("medialab\\SCENARIO-" + scenario_id.getText() + ".txt");
 	        		BufferedWriter out = new BufferedWriter(fstream);
 	        		out.write(difficulty_level.getValue() + "\n");
 	        		out.write(number_of_bombs.getValue() + "\n");
-	        		out.write(time_left.getValue() + "\n");
+	        		out.write((int)time_left.getValue() + "\n");
 	        		out.write(hyper_bomb.getValue() + "\n");
 	        		out.close();
         		}
@@ -448,7 +343,7 @@ public class MinesweeperApp extends Application {
         vb.getChildren().addAll(scenario_id_hb, difficulty_level_hb, number_of_bombs_hb, hyper_bomb_hb, time_left_hb, buttons);
         vb.setSpacing(5);
         
-        Scene popup = new Scene(vb, 270, 200);
+        Scene popup = new Scene(vb, 520, 200);
         stage.setScene(popup);
         stage.show();
     }
@@ -489,29 +384,24 @@ public class MinesweeperApp extends Application {
         				if(count_lines == 0) {
         					difficulty_level = Integer.parseInt(data);
         					if(difficulty_level != 1 && difficulty_level != 2) {
-        						//System.out.println("Throw InvalidValueException");
         						throw new InvalidValueException();
         					}
         				} 
         				else if(count_lines == 1) {
         					number_of_bombs = Integer.parseInt(data);
         					if(difficulty_level == 1 && (number_of_bombs < 9 || number_of_bombs > 11)) {
-        						//System.out.println("Throw InvalidValueException 1");
         						throw new InvalidValueException();
         					}
         					else if(difficulty_level == 2 && (number_of_bombs < 35 || number_of_bombs > 45)) {
-//        						System.out.println("Throw InvalidValueException");
         						throw new InvalidValueException();
         					}
         				}  
         				else if(count_lines == 2) {
         					time_left_in_seconds = Integer.parseInt(data);
         					if(difficulty_level == 1 && (time_left_in_seconds < 120 || time_left_in_seconds > 180)) {
-//        						System.out.println("Throw InvalidValueException2");
         						throw new InvalidValueException();
         					}
         					else if(difficulty_level == 2 && (time_left_in_seconds < 240 || time_left_in_seconds > 360)) {
-//        						System.out.println("Throw InvalidValueException");
         						throw new InvalidValueException();
         					}
         				}  
@@ -519,16 +409,14 @@ public class MinesweeperApp extends Application {
         					int help = Integer.parseInt(data);
         					hyper_bomb =  (help == 1);
         					if(difficulty_level == 1 && hyper_bomb == true) {
-//        						System.out.println("Throw InvalidValueException3");
         						throw new InvalidValueException();
         					}
         				}  
         				else {
-        					//throw exception
-//        					System.out.println("Throw InvalidDescriptionException");
         					throw new InvalidDescriptionException();
         				}
         				count_lines++;
+        				valid_data = true;
         			}
         			myReader.close();
         		}
@@ -542,16 +430,17 @@ public class MinesweeperApp extends Application {
         	catch (Exception e) {
         		if(e instanceof InvalidValueException) {
 	      	      System.out.println("Invalid Value Exception.");
+	      	      valid_data = false;
 	      	      e.printStackTrace();
         		}
         		if(e instanceof InvalidDescriptionException) {
         			System.out.println("Invalid Description Exception.");
+        			valid_data = false;
         			e.printStackTrace();
         		}
         	}
         });
-        
-        
+             
         Button close = new Button("Close");
         close.setOnAction(bar -> {stage.close();});
         
@@ -569,43 +458,175 @@ public class MinesweeperApp extends Application {
     
     private void show_solution()
     {
-		System.out.println("X_AXIS, Y_AXIS");
-    	for(Coordinate i: bombs_location) {
-    		int x_axis = i.getX()-1;
-    		int y_axis = i.getY()-1;
-    		System.out.print(x_axis);
-    		System.out.print("  ");
-    		System.out.println(y_axis);
-    		if(i.getHyperBomb()) {
-    			grid[x_axis][y_axis].open();
-    			Hyper_Tile test = (Hyper_Tile) grid[x_axis][y_axis];
-    			test.open();
-    		}
-    		else {
-    			grid[x_axis][y_axis].hyper_open();
-    		}
-		}
-    	if(timer_running) {
-    		tm.cancel();
+    	if(something_already_drawn && timer_running) {
+			System.out.println("X_AXIS, Y_AXIS");
+	    	for(Coordinate i: bombs_location) {
+	    		int x_axis = i.getX()-1;
+	    		int y_axis = i.getY()-1;
+	    		System.out.print(x_axis);
+	    		System.out.print("  ");
+	    		System.out.println(y_axis);
+	    		if(i.getHyperBomb()) {
+	    			grid[x_axis][y_axis].open();
+	    			Hyper_Tile test = (Hyper_Tile) grid[x_axis][y_axis];
+	    			test.open();
+	    		}
+	    		else {
+	    			grid[x_axis][y_axis].hyper_open();
+	    		}
+			}
+	    	if(timer_running) {
+	    		tm.cancel();
+	    	}
+	    	Round_result helper = new Round_result(number_of_bombs, total_moves, time_left_in_seconds - Integer.parseInt(timeleft.getText()), "Computer");
+	    	total_results++;
+	    	results.add(helper);
+	    	if(total_results > 5) {
+	    		results.remove(0);
+	    	}
     	}
     }
     
-    public static TextField getMarkedBombes(){
-        return markedbombs;
+   private void show_results() {
+	   Stage stage = new Stage();
+       stage.setTitle("Rounds");
+       stage.setResizable(false);
+
+
+       Label title_first = new Label("TITLES");
+       title_first.setMinWidth(53);
+       Button column [] = new Button[4];
+       column[0] = new Button("Number of Bombs");
+       column[1] = new Button("Total Moves");
+       column[2] = new Button("Total Time");
+       column[3] = new Button("Winner");
+       
+       HBox scenario_id_hb_first = new HBox();
+       scenario_id_hb_first.getChildren().addAll(title_first, column[0], column[1], column[2], column[3]);
+
+       VBox vb = new VBox();
+       vb.getChildren().addAll(scenario_id_hb_first);
+       Scene popup = new Scene(vb, 600, 220);
+       stage.setScene(popup);
+       stage.show();
+       
+       Label titles [] = new Label[5];
+       for(int i=0; i<5; i++) {
+    	   titles[i] = new Label("ROUND " + Integer.toString(i+1));
+       }
+
+       Button a[] = new Button[20];
+       double width = 0;
+       for(int i =0; i<4; i++) {
+    	   width = column[i].getWidth();
+    	   for(int j = i; j<20; j+=4) {
+        	   a[j] = new Button("-");
+        	   a[j].setMinWidth(width);
+    	   }
+       }
+       
+       int counter = 0;
+       for(Round_result result : results) {
+		   a[counter*4].setText(Integer.toString(result.getBombs()));
+		   a[counter*4+1].setText(Integer.toString(result.getTotal_moves()));
+		   a[counter*4+2].setText(Integer.toString(result.getTotal_time()));
+		   a[counter*4+3].setText(result.getWinner());
+		   counter++;
+       }
+
+       HBox scenario_id_hb = new HBox();
+       scenario_id_hb.getChildren().addAll(titles[0] , a[0], a[1], a[2], a[3]);
+
+       HBox scenario_id_hb2 = new HBox();
+       scenario_id_hb2.getChildren().addAll(titles[1], a[4], a[5], a[6], a[7]);
+
+       HBox scenario_id_hb3 = new HBox();
+       scenario_id_hb3.getChildren().addAll(titles[2], a[8], a[9], a[10], a[11]);
+
+       HBox scenario_id_hb4 = new HBox();
+       scenario_id_hb4.getChildren().addAll(titles[3], a[12], a[13], a[14], a[15]);
+
+       HBox scenario_id_hb5 = new HBox();
+       scenario_id_hb5.getChildren().addAll(titles[4], a[16], a[17], a[18], a[19]);
+     
+       Button close = new Button("Close");
+       close.setOnAction(bar -> {stage.close();});
+     
+       vb.getChildren().addAll(scenario_id_hb, scenario_id_hb2, scenario_id_hb3, scenario_id_hb4, scenario_id_hb5, close);
+       vb.setSpacing(5);
+	}
+   
+   private void winning() {
+       for(int i=0; i<X_TILES; i++) {
+    	   for(int j=0; j<Y_TILES; j++) {
+    		   grid[i][j].setDisable(true);
+    	   }
+       }
+       tm.cancel();
+       
+       Round_result helper = new Round_result(number_of_bombs, total_moves, time_left_in_seconds - Integer.parseInt(timeleft.getText()), "Player");
+   		total_results++;
+   		results.add(helper);
+   		if(total_results > 5) {
+   			results.remove(0);
+   		}
+   		timer_running = false;
+       Alert a = new Alert(AlertType.INFORMATION);
+       a.setHeaderText("YOU WON, PRESS START TO PLAY AGAIN");
+       a.show();
+   }
+   
+   private void bomb_pressed() {
+       for(int i=0; i<X_TILES; i++) {
+    	   for(int j=0; j<Y_TILES; j++) {
+    		   grid[i][j].setDisable(true);
+    	   }
+       }
+       tm.cancel();
+       
+       Round_result helper = new Round_result(number_of_bombs, total_moves, time_left_in_seconds - Integer.parseInt(timeleft.getText()), "Computer");
+   		total_results++;
+   		results.add(helper);
+   		if(total_results > 5) {
+   			results.remove(0);
+   		}
+   		timer_running = false;
+       Alert a = new Alert(AlertType.INFORMATION);
+       a.setHeaderText("YOU LOST, PRESS START TO TRY AGAIN");
+       a.show();
+   }
+   
+    private void hyper_bomb_found_in_5_moves(int x, int y) {
+		grid[board.hyper_bomb_x-1][board.hyper_bomb_y-1].setTilesRevealed();
+    	for(int i=0; i<X_TILES; i++) {
+			if(i!=y)
+				grid[x][i].hyper_open();
+		}
+		for(int j=0; j<Y_TILES; j++) {
+			if(j!=x)
+				grid[j][y].hyper_open();
+		}
+		tiles_to_win -= grid[board.hyper_bomb_x-1][board.hyper_bomb_y-1].getTilesRevealed();
     }
-    
-    public static Timer getTimer(){
-        return tm;
+    @Override
+    public void start(Stage primaryStage) throws Exception {
+   
+        scene = new Scene(createContent());
+
+        this.primaryStage.setScene(scene);
+        this.primaryStage.setTitle("MediaLab Minesweeper");
+        this.primaryStage.setResizable(false);
+        
+        this.primaryStage.setOnCloseRequest(event -> {
+        	if(timer_running) {
+        		tm.cancel();
+        	}
+        	Platform.exit();
+    	});
+        
+        this.primaryStage.show();
     }
-    
-    public static Tile[][] getGrid(){
-        return grid;
-    }
-    
-    public static int getDifficulty_level(){
-        return difficulty_level;
-    }
-    
+     
     public static void main(String[] args) {
         launch(args);
     }
