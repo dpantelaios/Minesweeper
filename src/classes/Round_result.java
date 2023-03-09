@@ -2,19 +2,21 @@ package classes;
 
 /**
  * Round_result class purpose is to create objects which 
- * store four values.
+ * store four values,
  * this class is used in MinesweeperApp class to store 
  * round results of last 5 rounds and display them when 
  * the button Rounds is pressed
  */
-
 public class Round_result
 {
     private int bombs, total_moves, total_time;
     private String winner;
     
     /**
-     * constructor of Round_result
+     * @param bombs  The number of bombs in the current mode
+     * @param total_moves  The number of moves played until now in the game
+     * @param total_time  The total amount of time that has passed since the start of the current game
+     * @param winner  The winner of the round, "Player" if the player wins or "Computer" if the player loses
      */
     public Round_result(int bombs, int total_moves, int total_time, String winner)
     {
@@ -25,12 +27,10 @@ public class Round_result
     }
     
     /**
-     * @param bombs, The number of bombs in the current mode
-     * @param total_moves, The number of moves played until now in the game
-     * @param total_time, The total amount of time that has passed since
-     * 					  the start of the current game
-     * @param winner, The winner of the round, "Player" if the player wins 
-     * 				  or "Computer" if the player loses
+     * @param bombs: The number of bombs in the current mode
+     * @param total_moves: The number of moves played until now in the game
+     * @param total_time: The total amount of time that has passed since the start of the current game
+     * @param winner: The winner of the round, "Player" if the player wins or "Computer" if the player loses
      * @return true if total_moves and total time are not negative
      */
     public static boolean isValidRound_result(int bombs, int total_moves, int total_time, String winner)

@@ -17,7 +17,7 @@ public class Tile extends StackPane{
     protected int x, y;
     protected int number_of_bombs, difficulty_level;
     protected boolean Bomb = false;
-    public boolean Open = false;
+    private boolean Open = false;
     private boolean marked = false;
     private static int tiles_revealed=0, openedWhileMarked = 0;
     protected List<Tile> neighbors = new ArrayList<>();
@@ -117,6 +117,7 @@ public class Tile extends StackPane{
            imageView.setFitWidth(TILE_SIZE-2);
            imageView.setImage(image);
            getChildren().add(imageView);
+           Open = true; //set boolean Open equal to true , so it cant be pressed again
            return;
         }
         if(marked) { // if it was marked while opened first remove flag image
@@ -133,6 +134,14 @@ public class Tile extends StackPane{
         text.setVisible(true);
         border.setFill(Color.WHITE);
     }
+    
+    public boolean getBomb() { // return if Tile is marked
+    	return Bomb;
+    }
+    
+    public void setBomb(boolean bomb) { // return if Tile is open
+    	Bomb = bomb;
+    }  
     
     public boolean getMarkedBombs() { // return if Tile is marked
     	return marked;

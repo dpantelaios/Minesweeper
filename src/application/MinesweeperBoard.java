@@ -39,84 +39,64 @@ public class MinesweeperBoard
         int remaining_bombs, remaining_TILES;
     	remaining_bombs = number_of_bombs; // remaining bombs to add
         remaining_TILES = X_AXIS_TILES*Y_AXIS_TILES; // remaining Tiles to create
-        
+        bombs_location = new ArrayList<Coordinate>();
+
         if(difficulty_level == 2 && hyper_bomb) { // Set a location for hyper bomb if exists
-        	hyper_bomb_x = ThreadLocalRandom.current().nextInt(1, X_AXIS_TILES);
-        	hyper_bomb_y = ThreadLocalRandom.current().nextInt(1, Y_AXIS_TILES);
-        	Hyper_Tile tile = new Hyper_Tile(hyper_bomb_x-1, hyper_bomb_y-1, true, difficulty_level);
+        	hyper_bomb_x = ThreadLocalRandom.current().nextInt(1, X_AXIS_TILES+1); //select random hyper_bomb location
+        	hyper_bomb_y = ThreadLocalRandom.current().nextInt(1, Y_AXIS_TILES+1);
+        	Hyper_Tile tile = new Hyper_Tile(hyper_bomb_x-1, hyper_bomb_y-1, true, difficulty_level); // create hyper Tile
     		grid[hyper_bomb_x-1][ hyper_bomb_y-1] = tile;
             root.getChildren().add(tile);
-            remaining_bombs--;
-            remaining_TILES--;
-            System.out.println(remaining_bombs);
-            System.out.println(remaining_TILES);
-            System.out.println(hyper_bomb_x);
-            System.out.println(hyper_bomb_y);
+            remaining_bombs--; // decrease number of remaining bombs
+            bombs_location.add(new Coordinate(hyper_bomb_x-1, hyper_bomb_y-1, true)); //Save Hyper Bomb Location
         }
         
 
-        bombs_location = new ArrayList<Coordinate>();
-               
-        boolean will_have_bomb = false;
-        boolean hyper = false;
         for (int x = 0; x < X_AXIS_TILES; x++) {
             for (int y = 0; y < Y_AXIS_TILES; y++) {
-            	if(remaining_TILES - remaining_bombs <= 0) { //if the number of remaining bombs equals the number of remaining tiles put bombs to all the rest tiles
-            		will_have_bomb = true;
-            	}
-            	else if(remaining_bombs > 0){ //if the are still bombs to place
-                	will_have_bomb = (Math.random() < (float)number_of_bombs/(X_AXIS_TILES*Y_AXIS_TILES)); // place bomb with probability (number of bombs)/(Total number of Tiles)
-            	}
-            	else { //if all bombs are placed
-            		will_have_bomb = false;
-            	}
-            	
-            	hyper = (((x+1)==hyper_bomb_x) && ((y+1)==hyper_bomb_y)); 
-            	if(hyper == true){
-            		System.out.println(x);
-            		System.out.println(y);
-            	}
-//            	if(difficulty_level == 2 && hyper_bomb && hyper) { // if this Tile contains hyper bomb
-//            		Hyper_Tile tile = new Hyper_Tile(x, y, hyper, difficulty_level);
-//            		grid[x][y] = tile;
-//                    root.getChildren().add(tile);
-//            	}
-//            	else if(!hyper){ // if this Tile does not contain hyper bomb, add normal Tile
-//            		Tile tile = new Tile(x, y, will_have_bomb, difficulty_level);
-//            		grid[x][y] = tile;
-//                    root.getChildren().add(tile);
-//            	}
-            	if(!hyper) {
-	            	Tile tile = new Tile(x, y, will_have_bomb, difficulty_level);
-	        		grid[x][y] = tile;
+            	if((x+1)!=hyper_bomb_x || (y+1)!=hyper_bomb_y) {
+	            	Tile tile = new Tile(x, y, false, difficulty_level); // create X_AXIS_TILES*Y_AXIS_TILES simple tiles without bombs
+	          		grid[x][y] = tile;
 	                root.getChildren().add(tile);
-	            	remaining_TILES--; //decrease remaining Tiles
+                }
+            }
+        }
+        int temp_x = 0, temp_y = 0;
+        
+        while(remaining_bombs > 0) {
+        	temp_x = ThreadLocalRandom.current().nextInt(0, X_AXIS_TILES);
+        	temp_y = ThreadLocalRandom.current().nextInt(0, Y_AXIS_TILES);
+        	if((temp_x+1)!=hyper_bomb_x || (temp_y+1)!=hyper_bomb_y) { // if not the hyper bomb location
+	        	if (!grid[temp_x][temp_y].getBomb()) { // if the Tile does not already have a bomb
+	        		grid[temp_x][temp_y].setBomb(true); // add bomb to this Tile
+	        		remaining_bombs --; // decrease number of remaining bombs
+	        	}
+        	}
+        }
+        
+        for (int x = 0; x < X_AXIS_TILES; x++) {
+            for (int y = 0; y < Y_AXIS_TILES; y++) {
+            	if(((x+1)!=hyper_bomb_x || (y+1)!=hyper_bomb_y)) {
+            		if(grid[x][y].getBomb()) {  // Save location of Tiles that contain a bomb
+            			bombs_location.add(new Coordinate(x, y, false));
+            		}
             	}
-                if(difficulty_level == 2 && hyper_bomb && hyper) {
-//                	remaining_bombs--; // decrease number of bombs if hyper bomb was added
-                	bombs_location.add(new Coordinate(x, y, hyper)); //save bomb location
-                } 
-                else if(will_have_bomb && !hyper) {
-                	remaining_bombs--; // decrease number of bombs if bomb was added
-                	bombs_location.add(new Coordinate(x, y)); //save bomb location
-                }  
-                hyper = false; // set hyper to false
             }
         }
         
     	try {
-    		new FileWriter("output\\mines.txt", false).close();  // delete previous content of mines.txt
+    		new FileWriter(System.getProperty("user.dir") + "/output\\mines.txt", false).close();  // delete previous content of mines.txt
     		FileWriter fstream = new FileWriter("output\\mines.txt");  // save bomb locations to mines.txt
 			BufferedWriter out = new BufferedWriter(fstream);
     		for(Coordinate i: bombs_location) { // read bomb locations one by one
 				if(difficulty_level == 2 && hyper_bomb) { //if there was a hyper bomb
 					out.write(i.getX() + "," + i.getY() + "," + i.getHyperBomb() + "\n");
 					
-		    		System.out.println(i.toString_hyper());
+//		    		System.out.println(i.toString_hyper());
 				}
 				else { // modes without hyper bomb
 					out.write(i.getX() + "," + i.getY() + "\n");
-					System.out.println(i.toString());
+//					System.out.println(i.toString());
 				}
     		}
     		out.close();

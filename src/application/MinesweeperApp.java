@@ -50,11 +50,11 @@ public class MinesweeperApp extends Application {
     
     private TextField timeleft = new TextField();
     private TextField numberofbombs  = new TextField();
-    public static TextField markedbombs = new TextField();
-    private static int difficulty_level = 0;
-    private int number_of_bombs;
-    private boolean hyper_bomb = false, valid_data = false;
-    private int time_left_in_seconds = 0;
+    private static TextField markedbombs = new TextField();
+    private static int difficulty_level = 0, difficulty_level_temp = 0;
+    private int number_of_bombs=0, number_of_bombs_temp=0;
+    private boolean hyper_bomb = false, hyper_bomb_temp = false, valid_data = false;
+    private int time_left_in_seconds = 0, time_left_in_seconds_temp = 0;
     private boolean timer_running = false, solution_revealed = false;
     public static Timer tm;
     private List<Coordinate> bombs_location;
@@ -69,7 +69,6 @@ public class MinesweeperApp extends Application {
     private int tiles_to_win = X_AXIS_TILES*Y_AXIS_TILES;
     
     private Parent createContent() {
-    	
     	// define two menus
         Menu menu = new Menu("Basic Functions");
     	Menu menu_details = new Menu("Details");
@@ -79,12 +78,11 @@ public class MinesweeperApp extends Application {
         MenuItem start = new MenuItem("Start");
         MenuItem load = new MenuItem("Load");
         MenuItem exit = new MenuItem("Exit");
-        MenuItem help = new MenuItem("Help");
         // define menuItems of menu Details
         MenuItem round = new MenuItem("Round");
         MenuItem solution = new MenuItem("Solution");
         
-        menu.getItems().addAll(create, start, load, exit, help); //add menuItems to menu Basic Function
+        menu.getItems().addAll(create, start, load, exit); //add menuItems to menu Basic Function
         menu_details.getItems().addAll(round, solution); //add menuItems to menu Details
                
         // create menu bar
@@ -102,7 +100,6 @@ public class MinesweeperApp extends Application {
         start.setOnAction(f -> { start(); });    	
         solution.setOnAction(e -> { show_solution(); });
         round.setOnAction(e -> { show_results(); });
-        help.setOnAction(e -> {help();});
         root = new GridPane();
         
         BorderPane border_root = new BorderPane();
@@ -134,6 +131,10 @@ public class MinesweeperApp extends Application {
     }
 
 	private void start() {
+		difficulty_level = difficulty_level_temp;
+        number_of_bombs = number_of_bombs_temp;
+        hyper_bomb = hyper_bomb_temp;
+        time_left_in_seconds = time_left_in_seconds_temp;
 		if(difficulty_level == 2) {  // Set number of Tiles depending on the difficult level given
     		X_AXIS_TILES = 16;
     		Y_AXIS_TILES = 16;
@@ -178,10 +179,9 @@ public class MinesweeperApp extends Application {
 		        	String time = timeleft.getText();
 		    		int time_int = Integer.parseInt(time);
 		    		time_int --;
-//		    		System.out.println(time_int);
 		    		timeleft.setText(String.valueOf(time_int));
 		    		if(time_int <= 0) {
-//		    			tm.cancel();
+		    			tm.cancel();
 		    			timer_running=false; 
 		    			bomb_pressed(); // the game is lost
 		    		}
@@ -219,8 +219,6 @@ public class MinesweeperApp extends Application {
 			        		if(tiles_to_win == 0) { // if all Tiles without bomb are opened
 			        			winning();
 			        		}
-			        		System.out.print("TILES_REVEALED:");
-			        		System.out.println(X_AXIS_TILES*Y_AXIS_TILES - number_of_bombs - tiles_to_win);
 			        	}
 			        	else if (button == MouseButton.SECONDARY){
 			        		if(Integer.parseInt(markedbombs.getText()) < number_of_bombs || grid[innerI][innerJ].getMarkedBombs()){ //the number of marked Tiles can't be bigger than number of bombs
@@ -269,7 +267,6 @@ public class MinesweeperApp extends Application {
         ChoiceBox difficulty_level = new ChoiceBox(FXCollections.observableArrayList("1", "2")); // choose difficulty level from possible values
         HBox difficulty_level_hb = new HBox();
         difficulty_level_hb.getChildren().addAll(label2, difficulty_level);
-        //System.out.println(difficulty_level.getValue());
         
         Label label3 = new Label("Number of Bombs:"); 
         ChoiceBox number_of_bombs = new ChoiceBox(); // create choice box for number of bombs
@@ -327,8 +324,8 @@ public class MinesweeperApp extends Application {
         create.setOnAction(action -> { // if create button is pressed
         	try{
         		if(!scenario_id.getText().isEmpty() && difficulty_level.getValue() != null && number_of_bombs.getValue() != null && hyper_bomb.getValue() != null) { //if none of the fields are empty
-        			new FileWriter("medialab\\SCENARIO-" + scenario_id.getText() + ".txt", false).close(); // delete file contents if there was a file with same id
-	        		FileWriter fstream = new FileWriter("medialab\\SCENARIO-" + scenario_id.getText() + ".txt");
+        			new FileWriter(System.getProperty("user.dir") + "/medialab\\SCENARIO-" + scenario_id.getText() + ".txt", false).close(); // delete file contents if there was a file with same id
+	        		FileWriter fstream = new FileWriter(System.getProperty("user.dir") + "/medialab\\SCENARIO-" + scenario_id.getText() + ".txt");
 	        		BufferedWriter out = new BufferedWriter(fstream);
 	        		out.write(difficulty_level.getValue() + "\n"); // write difficulty level in first line
 	        		out.write(number_of_bombs.getValue() + "\n"); // write number of bombs in second line
@@ -385,39 +382,39 @@ public class MinesweeperApp extends Application {
         load.setOnAction(action -> {
         	try{	    
         		if(scenario_id.getValue() != null) {
-        			File myObj = new File("medialab\\SCENARIO-" + scenario_id.getValue() + ".txt"); // open files and read values
+        			File myObj = new File(System.getProperty("user.dir") + "/medialab\\SCENARIO-" + scenario_id.getValue() + ".txt"); // open files and read values
         			Scanner myReader = new Scanner(myObj);
         			int count_lines = 0;
         			while (myReader.hasNextLine()) {
         				String data = myReader.nextLine();
         				if(count_lines == 0) { //first line contains difficulty level
-        					difficulty_level = Integer.parseInt(data);
-        					if(difficulty_level != 1 && difficulty_level != 2) { // if difficulty level value outside boundaries throw exception
+        					difficulty_level_temp = Integer.parseInt(data);
+        					if(difficulty_level_temp != 1 && difficulty_level_temp != 2) { // if difficulty level value outside boundaries throw exception
         						throw new InvalidValueException();
         					}
         				} 
         				else if(count_lines == 1) { // second line contains number of bombs
-        					number_of_bombs = Integer.parseInt(data);
-        					if(difficulty_level == 1 && (number_of_bombs < 9 || number_of_bombs > 11)) { // if number of bombs value outside boundaries throw exception
+        					number_of_bombs_temp = Integer.parseInt(data);
+        					if(difficulty_level_temp == 1 && (number_of_bombs_temp < 9 || number_of_bombs_temp > 11)) { // if number of bombs value outside boundaries throw exception
         						throw new InvalidValueException();
         					}
-        					else if(difficulty_level == 2 && (number_of_bombs < 35 || number_of_bombs > 45)) { // if number of bombs value outside boundaries throw exception
+        					else if(difficulty_level_temp == 2 && (number_of_bombs_temp < 35 || number_of_bombs_temp > 45)) { // if number of bombs value outside boundaries throw exception
         						throw new InvalidValueException();
         					}
         				}  
         				else if(count_lines == 2) { // third line contains Total Time Given
-        					time_left_in_seconds = Integer.parseInt(data);
-        					if(difficulty_level == 1 && (time_left_in_seconds < 120 || time_left_in_seconds > 180)) { // if number of bombs value outside boundaries throw exception
+        					time_left_in_seconds_temp = Integer.parseInt(data);
+        					if(difficulty_level_temp == 1 && (time_left_in_seconds_temp < 120 || time_left_in_seconds_temp > 180)) { // if number of bombs value outside boundaries throw exception
         						throw new InvalidValueException();
         					}
-        					else if(difficulty_level == 2 && (time_left_in_seconds < 240 || time_left_in_seconds > 360)) { // if number of bombs value outside boundaries throw exception
+        					else if(difficulty_level_temp == 2 && (time_left_in_seconds_temp < 240 || time_left_in_seconds_temp > 360)) { // if number of bombs value outside boundaries throw exception
         						throw new InvalidValueException();
         					}
         				}  
         				else if(count_lines == 3) { // fourth line contains boolean hyper bomb
         					int help = Integer.parseInt(data);
-        					hyper_bomb =  (help == 1);
-        					if(difficulty_level == 1 && hyper_bomb == true) { // if difficulty level equals to 1 and we have a hyper bomb throw exception
+        					hyper_bomb_temp =  (help == 1);
+        					if(difficulty_level_temp == 1 && hyper_bomb_temp == true) { // if difficulty level equals to 1 and we have a hyper bomb throw exception
         						throw new InvalidValueException();
         					}
         				}  
@@ -595,7 +592,10 @@ public class MinesweeperApp extends Application {
     		   grid[i][j].setDisable(true);
     	   }
        }
-       tm.cancel(); //cancel timer
+       if(timer_running) {
+    	   tm.cancel(); //cancel timer
+    	   timer_running = false;
+       }
        
        Round_result helper = new Round_result(number_of_bombs, total_moves, time_left_in_seconds - Integer.parseInt(timeleft.getText()), "Computer"); // add result with Computer as the winner
    		total_results++;
@@ -603,10 +603,19 @@ public class MinesweeperApp extends Application {
    		if(total_results > 5) { // maximum 5 results
    			results.remove(0);
    		}
-   		timer_running = false;
-       Alert a = new Alert(AlertType.INFORMATION);
-       a.setHeaderText("YOU LOST, PRESS START TO TRY AGAIN"); // Inform Player that he lost
-       a.show();
+   		
+   		Runnable updateUIRunnable = new Runnable() {
+   		    @Override
+   		    public void run() {
+   		    	Alert a = new Alert(AlertType.INFORMATION);
+   		    	a.setHeaderText("YOU LOST, PRESS START TO TRY AGAIN"); // Inform Player that he lost
+   		    	a.show();
+   		    }
+   		};
+
+   		Platform.runLater(updateUIRunnable);
+
+       
    }
    
     private void hyper_bomb_found_in_5_moves(int x, int y) { // Hyper Bomb flagged within 5 moves
@@ -638,18 +647,6 @@ public class MinesweeperApp extends Application {
     	});
         
         this.primaryStage.show();
-    }
-    
-    private void help() {
-    	for(int i=0; i<X_AXIS_TILES; i++) { // disable all Tiles
-     	   for(int j=0; j<Y_AXIS_TILES; j++) {
-     		   if(!grid[i][j].Open && !grid[i][j].Bomb) {
-     			   System.out.print(grid[i][j].x);
-     			   System.out.print(" ");
-     			   System.out.println(grid[i][j].y);
-     		   }
-     	   }
-        }
     }
      
     public static void main(String[] args) {
