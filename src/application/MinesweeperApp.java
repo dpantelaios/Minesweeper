@@ -370,7 +370,7 @@ public class MinesweeperApp extends Application {
         HBox scenario_id_hb = new HBox();
         scenario_id_hb.getChildren().addAll(label1, scenario_id);
         
-        File directoryPath = new File("medialab");
+        File directoryPath = new File(System.getProperty("user.dir") + "/medialab");
         //List of all files and directories
         scenario_id.getItems().removeAll(scenario_id.getItems()); // get all the ids of the given files and display them
         String contents[] = directoryPath.list();

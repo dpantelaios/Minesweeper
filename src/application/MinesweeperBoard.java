@@ -36,9 +36,8 @@ public class MinesweeperBoard
     	}
 
         grid = new Tile[X_AXIS_TILES][Y_AXIS_TILES];
-        int remaining_bombs, remaining_TILES;
+        int remaining_bombs;
     	remaining_bombs = number_of_bombs; // remaining bombs to add
-        remaining_TILES = X_AXIS_TILES*Y_AXIS_TILES; // remaining Tiles to create
         bombs_location = new ArrayList<Coordinate>();
 
         if(difficulty_level == 2 && hyper_bomb) { // Set a location for hyper bomb if exists
@@ -86,7 +85,7 @@ public class MinesweeperBoard
         
     	try {
     		new FileWriter(System.getProperty("user.dir") + "/output\\mines.txt", false).close();  // delete previous content of mines.txt
-    		FileWriter fstream = new FileWriter("output\\mines.txt");  // save bomb locations to mines.txt
+    		FileWriter fstream = new FileWriter(System.getProperty("user.dir") + "/output\\mines.txt");  // save bomb locations to mines.txt
 			BufferedWriter out = new BufferedWriter(fstream);
     		for(Coordinate i: bombs_location) { // read bomb locations one by one
 				if(difficulty_level == 2 && hyper_bomb) { //if there was a hyper bomb
