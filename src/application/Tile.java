@@ -14,8 +14,8 @@ import javafx.scene.text.Text;
 public class Tile extends StackPane{
 	private static final int TILE_SIZE = 40;
 	
-    protected int x, y;
-    protected int number_of_bombs, difficulty_level;
+    protected int x=0, y=0;
+    protected int number_of_bombs=0, difficulty_level=0;
     protected boolean Bomb = false;
     private boolean Open = false;
     private boolean marked = false;

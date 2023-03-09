@@ -146,7 +146,9 @@ public class MinesweeperApp extends Application {
 		tiles_to_win = X_AXIS_TILES*Y_AXIS_TILES - number_of_bombs; //i have to reveal these many tiles to win
 		
     	if(something_already_drawn && valid_data) { //if start is being pressed while playing and the data given are valid
-    		tm.cancel(); //cancel running timer of previous execution
+    		if(timer_running) {
+    			tm.cancel(); //cancel running timer of previous execution
+    		}
     		timer_running = false; // set boolean so we know that there is no timer running from now on
     		something_already_drawn = false; // set boolean so we know there is no Board drawn from now on
     		root.getChildren().clear(); // clear GridPane from tiles and every component

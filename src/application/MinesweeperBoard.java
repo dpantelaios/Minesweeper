@@ -125,7 +125,17 @@ public class MinesweeperBoard
                 if (bombs > 0) { // Set Text colour depending on number of neighbors' bombs
                     tile.number_of_bombs = bombs;
                   	tile.text.setText(String.valueOf(tile.number_of_bombs));
-                  	if(bombs == 3) // 3 neighbors with bomb -> RED color Text
+                  	if(bombs == 8) // 3 neighbors with bomb -> RED color Text
+                  		tile.text.setFill(Color.GRAY); 
+                  	else if(bombs == 7) // 2 neighbors with bomb -> GREEN color Text
+                  		tile.text.setFill(Color.BLACK); 
+                  	else if(bombs == 6) // 3 neighbors with bomb -> RED color Text
+                  		tile.text.setFill(Color.TURQUOISE); 
+                  	else if(bombs == 5) // 2 neighbors with bomb -> GREEN color Text
+                  		tile.text.setFill(Color.MAROON); 
+                  	else if(bombs == 4) // 2 neighbors with bomb -> GREEN color Text
+                  		tile.text.setFill(Color.PURPLE); 
+                  	else if(bombs == 3) // 3 neighbors with bomb -> RED color Text
                   		tile.text.setFill(Color.RED); 
                   	else if(bombs == 2) // 2 neighbors with bomb -> GREEN color Text
                   		tile.text.setFill(Color.GREEN); 
