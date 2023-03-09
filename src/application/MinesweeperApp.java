@@ -266,17 +266,17 @@ public class MinesweeperApp extends Application {
         scenario_id_hb.getChildren().addAll(label1, scenario_id);
         
         Label label2 = new Label("Difficulty Level:"); 
-        ChoiceBox difficulty_level = new ChoiceBox(FXCollections.observableArrayList("1", "2")); // choose difficulty level from possible values
+		ChoiceBox<String> difficulty_level = new ChoiceBox<String>(FXCollections.observableArrayList("1", "2")); // choose difficulty level from possible values
         HBox difficulty_level_hb = new HBox();
         difficulty_level_hb.getChildren().addAll(label2, difficulty_level);
         
         Label label3 = new Label("Number of Bombs:"); 
-        ChoiceBox number_of_bombs = new ChoiceBox(); // create choice box for number of bombs
+        ChoiceBox<Integer> number_of_bombs = new ChoiceBox<Integer>(); // create choice box for number of bombs
         HBox number_of_bombs_hb = new HBox();
         number_of_bombs_hb.getChildren().addAll(label3, number_of_bombs);
         
         Label label4 = new Label("Hyper bomb:"); 
-        ChoiceBox hyper_bomb =  new ChoiceBox(); // create choice box for hyper bomb
+        ChoiceBox<Boolean> hyper_bomb =  new ChoiceBox<Boolean>(); // create choice box for hyper bomb
         HBox hyper_bomb_hb = new HBox();
         hyper_bomb_hb.getChildren().addAll(label4, hyper_bomb);
         
@@ -293,7 +293,7 @@ public class MinesweeperApp extends Application {
         
         difficulty_level.getSelectionModel().selectedIndexProperty().addListener(new ChangeListener<Number>() { // set possible values for TimeLeft, number of bombs and hyper bomb depending on the level
             // if items of the list are changed
-            public void changed(ObservableValue ov, Number value, Number new_value) {
+            public void changed(@SuppressWarnings("rawtypes") ObservableValue ov, Number value, Number new_value) {
             	
             	if(new_value.intValue() == 0) {
             		number_of_bombs.getItems().removeAll(number_of_bombs.getItems());
@@ -302,7 +302,7 @@ public class MinesweeperApp extends Application {
             		}
             		
             		hyper_bomb.getItems().removeAll(hyper_bomb.getItems());
-            		hyper_bomb.getItems().add(0);
+            		hyper_bomb.getItems().add(false);
             		
             		time_left.setMin(120);
             		time_left.setMax(180);
@@ -314,7 +314,7 @@ public class MinesweeperApp extends Application {
             		}  
             		
             		hyper_bomb.getItems().removeAll(hyper_bomb.getItems());
-            		hyper_bomb.getItems().addAll(0, 1);
+            		hyper_bomb.getItems().addAll(false, true);
 
             		time_left.setMin(240);
             		time_left.setMax(360);
@@ -332,7 +332,7 @@ public class MinesweeperApp extends Application {
 	        		out.write(difficulty_level.getValue() + "\n"); // write difficulty level in first line
 	        		out.write(number_of_bombs.getValue() + "\n"); // write number of bombs in second line
 	        		out.write((int)time_left.getValue() + "\n"); // write Total Time Given in third line
-	        		out.write(hyper_bomb.getValue() + "\n"); // write if there is a hyper bomb in fourth line
+	        		out.write(Boolean.compare(hyper_bomb.getValue(), false) + "\n"); // write if there is a hyper bomb in fourth line
 	        		out.close();
         		}
         		else {
@@ -366,7 +366,7 @@ public class MinesweeperApp extends Application {
         stage.setResizable(false);
         
         Label label1 = new Label("Scenario ID:");  // field to select Id       
-        ChoiceBox scenario_id = new ChoiceBox();
+        ChoiceBox<String> scenario_id = new ChoiceBox<String>();
         HBox scenario_id_hb = new HBox();
         scenario_id_hb.getChildren().addAll(label1, scenario_id);
         
@@ -387,49 +387,56 @@ public class MinesweeperApp extends Application {
         			File myObj = new File(System.getProperty("user.dir") + "/medialab\\SCENARIO-" + scenario_id.getValue() + ".txt"); // open files and read values
         			Scanner myReader = new Scanner(myObj);
         			int count_lines = 0;
-        			while (myReader.hasNextLine()) {
-        				String data = myReader.nextLine();
-        				if(count_lines == 0) { //first line contains difficulty level
-        					difficulty_level_temp = Integer.parseInt(data);
-        					if(difficulty_level_temp != 1 && difficulty_level_temp != 2) { // if difficulty level value outside boundaries throw exception
-        						throw new InvalidValueException();
-        					}
-        				} 
-        				else if(count_lines == 1) { // second line contains number of bombs
-        					number_of_bombs_temp = Integer.parseInt(data);
-        					if(difficulty_level_temp == 1 && (number_of_bombs_temp < 9 || number_of_bombs_temp > 11)) { // if number of bombs value outside boundaries throw exception
-        						throw new InvalidValueException();
-        					}
-        					else if(difficulty_level_temp == 2 && (number_of_bombs_temp < 35 || number_of_bombs_temp > 45)) { // if number of bombs value outside boundaries throw exception
-        						throw new InvalidValueException();
-        					}
-        				}  
-        				else if(count_lines == 2) { // third line contains Total Time Given
-        					time_left_in_seconds_temp = Integer.parseInt(data);
-        					if(difficulty_level_temp == 1 && (time_left_in_seconds_temp < 120 || time_left_in_seconds_temp > 180)) { // if number of bombs value outside boundaries throw exception
-        						throw new InvalidValueException();
-        					}
-        					else if(difficulty_level_temp == 2 && (time_left_in_seconds_temp < 240 || time_left_in_seconds_temp > 360)) { // if number of bombs value outside boundaries throw exception
-        						throw new InvalidValueException();
-        					}
-        				}  
-        				else if(count_lines == 3) { // fourth line contains boolean hyper bomb
-        					int help = Integer.parseInt(data);
-        					hyper_bomb_temp =  (help == 1);
-        					if(difficulty_level_temp == 1 && hyper_bomb_temp == true) { // if difficulty level equals to 1 and we have a hyper bomb throw exception
-        						throw new InvalidValueException();
-        					}
-        				}  
-        				else { // if we have more than four values throw invalid description exception
-        					throw new InvalidDescriptionException();
-        				}
-        				count_lines++;
-        				valid_data = true;
+        			try {
+	        			while (myReader.hasNextLine()) {
+	        				String data = myReader.nextLine();
+	        				if(count_lines == 0) { //first line contains difficulty level
+	        					difficulty_level_temp = Integer.parseInt(data);
+	        					if(difficulty_level_temp != 1 && difficulty_level_temp != 2) { // if difficulty level value outside boundaries throw exception
+	        						throw new InvalidValueException();
+	        					}
+	        				} 
+	        				else if(count_lines == 1) { // second line contains number of bombs
+	        					number_of_bombs_temp = Integer.parseInt(data);
+	        					if(difficulty_level_temp == 1 && (number_of_bombs_temp < 9 || number_of_bombs_temp > 11)) { // if number of bombs value outside boundaries throw exception
+	        						throw new InvalidValueException();
+	        					}
+	        					else if(difficulty_level_temp == 2 && (number_of_bombs_temp < 35 || number_of_bombs_temp > 45)) { // if number of bombs value outside boundaries throw exception
+	        						throw new InvalidValueException();
+	        					}
+	        				}  
+	        				else if(count_lines == 2) { // third line contains Total Time Given
+	        					time_left_in_seconds_temp = Integer.parseInt(data);
+	        					if(difficulty_level_temp == 1 && (time_left_in_seconds_temp < 120 || time_left_in_seconds_temp > 180)) { // if number of bombs value outside boundaries throw exception
+	        						throw new InvalidValueException();
+	        					}
+	        					else if(difficulty_level_temp == 2 && (time_left_in_seconds_temp < 240 || time_left_in_seconds_temp > 360)) { // if number of bombs value outside boundaries throw exception
+	        						throw new InvalidValueException();
+	        					}
+	        				}  
+	        				else if(count_lines == 3) { // fourth line contains boolean hyper bomb
+	        					int help = Integer.parseInt(data);
+	        					hyper_bomb_temp =  (help == 1);
+	        					if(difficulty_level_temp == 1 && hyper_bomb_temp == true) { // if difficulty level equals to 1 and we have a hyper bomb throw exception
+	        						throw new InvalidValueException();
+	        					}
+	        				}  
+	        				else { // if we have more than four values throw invalid description exception
+	        					throw new InvalidDescriptionException();
+	        				}
+	        				count_lines++;
+	        				valid_data = true;
+	        			}
+        			}
+        			catch (Exception e) {
+        			    System.out.println("errors");
+        			}
+        			finally {
+        				myReader.close();
         			}
         			if(count_lines < 4) { //if we read less than 4 values
     					throw new InvalidDescriptionException();
         			}
-        			myReader.close();
         		}
         		else {
         			System.out.println("error");
