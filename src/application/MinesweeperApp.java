@@ -3,8 +3,6 @@ package application;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import classes.Coordinate;
 import classes.Round_result;
@@ -58,7 +56,6 @@ public class MinesweeperApp extends Application {
     private boolean hyper_bomb = false, hyper_bomb_temp = false, valid_data = false;
     private int time_left_in_seconds = 0, time_left_in_seconds_temp = 0;
     private boolean timer_running = false, solution_revealed = false;
-    public static Timer tm;
     private Timeline timeline;
     private List<Coordinate> bombs_location;
     private MinesweeperBoard board;
@@ -94,7 +91,6 @@ public class MinesweeperApp extends Application {
              
         exit.setOnAction(e->{  // when exit is pressed close platform and stop timer if it is in operation
         	if(timer_running) {
-        		tm.cancel();
         		timeline.stop();
     		    timeline.getKeyFrames().clear();
         	}
@@ -152,8 +148,7 @@ public class MinesweeperApp extends Application {
 		
     	if(something_already_drawn && valid_data) { //if start is being pressed while playing and the data given are valid
     		if(timer_running) {
-    			tm.purge(); //cancel running timer of previous execution
-    			timeline.stop();
+    			timeline.stop(); //cancel running timer of previous execution
     		    timeline.getKeyFrames().clear();
     		}
     		timer_running = false; // set boolean so we know that there is no timer running from now on
@@ -177,27 +172,8 @@ public class MinesweeperApp extends Application {
 	        numberofbombs.setText(String.valueOf(number_of_bombs));  // Set Textfield with information given by chosen game mode
 	        markedbombs.setText("0");
 	        timeleft.setText(String.valueOf(time_left_in_seconds));
-	        tm = new Timer();   // create new timer   
-	        
-//	        tm.scheduleAtFixedRate(new TimerTask(){ // get Textfield timeleft value, decrease it by 1 and display the new value
-//	        	//override run method
-//	        	@Override
-//	        	public void run() {
-//		        	//print a message notifying about timer
-////		        	System.out.println("Timer works. . . .");
-//		        	String time = timeleft.getText();
-//		    		int time_int = Integer.parseInt(time);
-//		    		time_int --;
-//		    		timeleft.setText(String.valueOf(time_int));
-//		    		if(time_int <= 0) {
-//		    			tm.cancel();
-//		    			timer_running=false; 
-//		    			bomb_pressed(); // the game is lost
-//		    		}
-//	        	}
-//	    	}, 1000, 1000);
-	        
-	        timeline = new Timeline(
+	                
+	        timeline = new Timeline( // create new timer
 	                new KeyFrame(Duration.ZERO, event -> {
 	                    int value = Integer.parseInt(timeleft.getText());
 	                    timeleft.setText(String.valueOf(value - 1));
@@ -466,9 +442,9 @@ public class MinesweeperApp extends Application {
 	        				valid_data = true;
 	        			}
         			}
-        			catch (Exception e) {
-        			    System.out.println("errors");
-        			}
+//        			catch (Exception e) {
+//        			    System.out.println("errors");
+//        			}
         			finally {
         				myReader.close();
         			}
@@ -526,7 +502,6 @@ public class MinesweeperApp extends Application {
 	    		}
 			}
 	    	if(timer_running) { // if there is a timer running then cancel it
-	    		tm.cancel();
 		   		timer_running = false;
 		   		timeline.stop();
     		    timeline.getKeyFrames().clear();
@@ -621,8 +596,7 @@ public class MinesweeperApp extends Application {
     		   grid[i][j].setDisable(true);
     	   }
        }
-       tm.cancel(); // cancel timer
-       timeline.stop();
+       timeline.stop(); // cancel timer
 	   timeline.getKeyFrames().clear();
        
        Round_result helper = new Round_result(number_of_bombs, total_moves, time_left_in_seconds - Integer.parseInt(timeleft.getText()), "Player"); // add result with Player as the winner
@@ -644,9 +618,8 @@ public class MinesweeperApp extends Application {
     	   }
        }
        if(timer_running) {
-    	   tm.cancel(); //cancel timer
     	   timer_running = false;
-    	   timeline.stop();
+    	   timeline.stop(); //cancel timer
 		   timeline.getKeyFrames().clear();
        }
        
@@ -657,22 +630,13 @@ public class MinesweeperApp extends Application {
    			results.remove(0);
    		}
    		
-//   		Runnable updateUIRunnable = new Runnable() {
-//   		    @Override
-//   		    public void run() {
     	Alert a = new Alert(AlertType.INFORMATION);
     	a.setHeaderText("YOU LOST, PRESS START TO TRY AGAIN"); // Inform Player that he lost
     	a.show();
-//   		    }
-//   		};
-
-//   		Platform.runLater(updateUIRunnable);
-
-       
    }
    
     private void hyper_bomb_found_in_5_moves(int x, int y) { // Hyper Bomb flagged within 5 moves
-		grid[board.hyper_bomb_x-1][board.hyper_bomb_y-1].setTilesRevealed();
+		grid[board.hyper_bomb_x-1][board.hyper_bomb_y-1].setTilesRevealed(); // Set Tiles revealed to zero
     	for(int i=0; i<X_AXIS_TILES; i++) {
 			if(i!=y)
 				grid[x][i].hyper_open(); // open Tiles on the same row with the hyper bomb
@@ -694,7 +658,6 @@ public class MinesweeperApp extends Application {
         
         this.primaryStage.setOnCloseRequest(event -> { //when the scene closes, if the timer is running, cancel it
         	if(timer_running) {
-        		tm.cancel();
         		timeline.stop();
     		    timeline.getKeyFrames().clear();
         	}
