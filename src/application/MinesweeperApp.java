@@ -204,16 +204,22 @@ public class MinesweeperApp extends Application {
 	                    if((value-1) == 0) {
 	                    	timeline.stop();
 	            		    timeline.getKeyFrames().clear();
-	            	   		Platform.runLater(() -> {Alert b = new Alert(AlertType.INFORMATION);
-	            	   								b.setHeaderText("YOU LOST, PRESS START TO TRY AGAIN"); // Inform Player that he lost
-	            	   								b.show();
-	            	   								timer_running = false;
-	            	   								Round_result helper = new Round_result(number_of_bombs, total_moves, time_left_in_seconds - Integer.parseInt(timeleft.getText()), "Computer"); // add result with Computer as the winner
-	            	   								total_results++;
-	            	   								results.add(helper);
-	            	   								if(total_results > 5) { // maximum 5 results
-	            	   									results.remove(0);
-	            	   								}
+	            	   		Platform.runLater(() -> {
+	            	   			for(int i=0; i<X_AXIS_TILES; i++) { // disable all Tiles
+	            	   	    	   for(int j=0; j<Y_AXIS_TILES; j++) {
+	            	   	    		   grid[i][j].setDisable(true);
+	            	   	    	   }
+	            	   			}
+	            	   			Alert b = new Alert(AlertType.INFORMATION);
+	            	   			b.setHeaderText("YOU LOST, PRESS START TO TRY AGAIN"); // Inform Player that he lost
+   								b.show();
+            	   			    timer_running = false;
+   								Round_result helper = new Round_result(number_of_bombs, total_moves, time_left_in_seconds - Integer.parseInt(timeleft.getText()), "Computer"); // add result with Computer as the winner
+   								total_results++;
+   								results.add(helper);
+   								if(total_results > 5) { // maximum 5 results
+   									results.remove(0);
+   								}
 	            	   		});
 	                    }
 	                }),
