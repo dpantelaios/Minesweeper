@@ -60,6 +60,7 @@ public class MinesweeperBoard
                 }
             }
         }
+        
         int temp_x = 0, temp_y = 0;
         
         while(remaining_bombs > 0) {
