@@ -10,7 +10,8 @@ import classes.Coordinate;
 import classes.Round_result;
 import classes.InvalidDescriptionException;
 import classes.InvalidValueException;
-
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.value.*;
@@ -33,6 +34,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -57,6 +59,7 @@ public class MinesweeperApp extends Application {
     private int time_left_in_seconds = 0, time_left_in_seconds_temp = 0;
     private boolean timer_running = false, solution_revealed = false;
     public static Timer tm;
+    private Timeline timeline;
     private List<Coordinate> bombs_location;
     private MinesweeperBoard board;
     private boolean something_already_drawn = false;
@@ -92,6 +95,8 @@ public class MinesweeperApp extends Application {
         exit.setOnAction(e->{  // when exit is pressed close platform and stop timer if it is in operation
         	if(timer_running) {
         		tm.cancel();
+        		timeline.stop();
+    		    timeline.getKeyFrames().clear();
         	}
         	Platform.exit();});
         
@@ -147,7 +152,9 @@ public class MinesweeperApp extends Application {
 		
     	if(something_already_drawn && valid_data) { //if start is being pressed while playing and the data given are valid
     		if(timer_running) {
-    			tm.cancel(); //cancel running timer of previous execution
+    			tm.purge(); //cancel running timer of previous execution
+    			timeline.stop();
+    		    timeline.getKeyFrames().clear();
     		}
     		timer_running = false; // set boolean so we know that there is no timer running from now on
     		something_already_drawn = false; // set boolean so we know there is no Board drawn from now on
@@ -172,23 +179,48 @@ public class MinesweeperApp extends Application {
 	        timeleft.setText(String.valueOf(time_left_in_seconds));
 	        tm = new Timer();   // create new timer   
 	        
-	        tm.scheduleAtFixedRate(new TimerTask(){ // get Textfield timeleft value, decrease it by 1 and display the new value
-	        	//override run method
-	        	@Override
-	        	public void run() {
-		        	//print a message notifying about timer
-//		        	System.out.println("Timer works. . . .");
-		        	String time = timeleft.getText();
-		    		int time_int = Integer.parseInt(time);
-		    		time_int --;
-		    		timeleft.setText(String.valueOf(time_int));
-		    		if(time_int <= 0) {
-		    			tm.cancel();
-		    			timer_running=false; 
-		    			bomb_pressed(); // the game is lost
-		    		}
-	        	}
-	    	}, 1000, 1000);
+//	        tm.scheduleAtFixedRate(new TimerTask(){ // get Textfield timeleft value, decrease it by 1 and display the new value
+//	        	//override run method
+//	        	@Override
+//	        	public void run() {
+//		        	//print a message notifying about timer
+////		        	System.out.println("Timer works. . . .");
+//		        	String time = timeleft.getText();
+//		    		int time_int = Integer.parseInt(time);
+//		    		time_int --;
+//		    		timeleft.setText(String.valueOf(time_int));
+//		    		if(time_int <= 0) {
+//		    			tm.cancel();
+//		    			timer_running=false; 
+//		    			bomb_pressed(); // the game is lost
+//		    		}
+//	        	}
+//	    	}, 1000, 1000);
+	        
+	        timeline = new Timeline(
+	                new KeyFrame(Duration.ZERO, event -> {
+	                    int value = Integer.parseInt(timeleft.getText());
+	                    timeleft.setText(String.valueOf(value - 1));
+	                    if((value-1) == 0) {
+	                    	timeline.stop();
+	            		    timeline.getKeyFrames().clear();
+	            	   		Platform.runLater(() -> {Alert b = new Alert(AlertType.INFORMATION);
+	            	   								b.setHeaderText("YOU LOST, PRESS START TO TRY AGAIN"); // Inform Player that he lost
+	            	   								b.show();
+	            	   								timer_running = false;
+	            	   								Round_result helper = new Round_result(number_of_bombs, total_moves, time_left_in_seconds - Integer.parseInt(timeleft.getText()), "Computer"); // add result with Computer as the winner
+	            	   								total_results++;
+	            	   								results.add(helper);
+	            	   								if(total_results > 5) { // maximum 5 results
+	            	   									results.remove(0);
+	            	   								}
+	            	   		});
+	                    }
+	                }),
+	                new KeyFrame(Duration.seconds(1))
+	        );
+	        timeline.setCycleCount(Timeline.INDEFINITE);
+	        timeline.play();
 	        
 	        grid = board.getGrid(); // get Tiles Created
 	        bombs_location = board.getBombLocation();   //get bomb locations   
@@ -490,6 +522,8 @@ public class MinesweeperApp extends Application {
 	    	if(timer_running) { // if there is a timer running then cancel it
 	    		tm.cancel();
 		   		timer_running = false;
+		   		timeline.stop();
+    		    timeline.getKeyFrames().clear();
 	    	}
 	    	Round_result helper = new Round_result(number_of_bombs, total_moves, time_left_in_seconds - Integer.parseInt(timeleft.getText()), "Computer"); // save result as won by computer
 	    	total_results++;
@@ -582,6 +616,8 @@ public class MinesweeperApp extends Application {
     	   }
        }
        tm.cancel(); // cancel timer
+       timeline.stop();
+	   timeline.getKeyFrames().clear();
        
        Round_result helper = new Round_result(number_of_bombs, total_moves, time_left_in_seconds - Integer.parseInt(timeleft.getText()), "Player"); // add result with Player as the winner
    		total_results++;
@@ -604,6 +640,8 @@ public class MinesweeperApp extends Application {
        if(timer_running) {
     	   tm.cancel(); //cancel timer
     	   timer_running = false;
+    	   timeline.stop();
+		   timeline.getKeyFrames().clear();
        }
        
        Round_result helper = new Round_result(number_of_bombs, total_moves, time_left_in_seconds - Integer.parseInt(timeleft.getText()), "Computer"); // add result with Computer as the winner
@@ -613,16 +651,16 @@ public class MinesweeperApp extends Application {
    			results.remove(0);
    		}
    		
-   		Runnable updateUIRunnable = new Runnable() {
-   		    @Override
-   		    public void run() {
-   		    	Alert a = new Alert(AlertType.INFORMATION);
-   		    	a.setHeaderText("YOU LOST, PRESS START TO TRY AGAIN"); // Inform Player that he lost
-   		    	a.show();
-   		    }
-   		};
+//   		Runnable updateUIRunnable = new Runnable() {
+//   		    @Override
+//   		    public void run() {
+    	Alert a = new Alert(AlertType.INFORMATION);
+    	a.setHeaderText("YOU LOST, PRESS START TO TRY AGAIN"); // Inform Player that he lost
+    	a.show();
+//   		    }
+//   		};
 
-   		Platform.runLater(updateUIRunnable);
+//   		Platform.runLater(updateUIRunnable);
 
        
    }
@@ -651,6 +689,8 @@ public class MinesweeperApp extends Application {
         this.primaryStage.setOnCloseRequest(event -> { //when the scene closes, if the timer is running, cancel it
         	if(timer_running) {
         		tm.cancel();
+        		timeline.stop();
+    		    timeline.getKeyFrames().clear();
         	}
         	Platform.exit();
     	});
